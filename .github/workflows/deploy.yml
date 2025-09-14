@@ -3,11 +3,11 @@ name: CI Pipeline for ECSCICD
 on:
   push:
     branches:
-      - master   # change to "main" if your repo default branch is main
-  workflow_dispatch:  # allows you to run manually from GitHub UI
+      - master
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,8 +22,35 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests (skip if none)
+      - name: Run tests
         run: npm test || echo "No tests found"
+
+      # Configure IAM credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Build Docker image
         run: docker build -t ecs-cicd-app .
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Tag Docker image
+        run: |
+          docker tag ecs-cicd-app:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/ecs-cicd-app:latest
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/ecs-cicd-app:latest
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ecs-cicd-cluster \
+            --service ecs-cicd-task-service \
+            --force-new-deployment \
+            --region us-east-1
