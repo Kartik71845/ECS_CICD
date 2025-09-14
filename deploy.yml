@@ -3,7 +3,7 @@ name: CI Pipeline for ECS
 on:
   push:
     branches:
-      - main   # or "master" if that’s your default branch
+      - master  
   pull_request:
 
 jobs:
