@@ -51,6 +51,6 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster ecs-cicd-cluster \
-            --service ecs-cicd-task-service \
+            --service ecs-cicid-task-service \
             --force-new-deployment \
             --region us-east-1
